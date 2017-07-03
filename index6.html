@@ -219,10 +219,12 @@ limitations under the License.
 
           function initBuggy() {
               console.log("initBuggy");
-              let cmdPinAd = new Uint8Array([0x01]);
+
+     
+              let cmdPinAd = new Uint32Array([0x01]);
               sendCommandPinAd(cmdPinAd).then(() => {
                   console.log('Pin AD set.');
-                  let cmdPinIO = new Uint8Array([0x01]);
+                  let cmdPinIO = new Uint32Array([0x01]);
                   sendCommandPinIO(cmdPinIO).then(() => {
                       console.log('Pin IO set.');
                       connect_status = true;
@@ -332,7 +334,8 @@ limitations under the License.
               return Promise.resolve();
             }
             busy = true;
-            console.log(writeCharacteristicPinAd);
+            
+           
             return writeCharacteristicPinAd.writeValue(cmd).then(() => {
             	console.log("write OK");
               busy = false;
@@ -356,14 +359,14 @@ limitations under the License.
               return Promise.resolve();
             }
             busy = true;
-            console.log(writeCharacteristicPinIO);
+            
+
             return writeCharacteristicPinIO.writeValue(cmd).then(() => {
             	console.log("write OK");
 
               busy = false;
               // Get next command from queue
               let nextCommand = commandQueuePinIO.shift();
-              console.log(nextCommand);
               if (nextCommand) {
                 sendCommandPinIO(nextCommand);
               }
@@ -462,13 +465,13 @@ limitations under the License.
               })
               .then(characteristicPinService => {
                 console.log('> Found write characteristic for PinService');
-                //initBuggy();
+                initBuggy();
 
                 writeCharacteristicPinService = characteristicPinService;
                 characteristicPinService.startNotifications();
                 characteristicPinService.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);
                 progress.hidden = true;
-                initBuggy();
+                
               
               })
               .catch(handleError);
