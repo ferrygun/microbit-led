@@ -290,7 +290,8 @@ limitations under the License.
          function handleCharacteristicValueChanged(event) {
     		  var value = event.target.value.getUint8(1);
     		  console.log(value);
-
+    		  document.getElementById("header").heading = value;
+    		  
     		  if (value >= 230) {
     		  	document.getElementById("header").heading = "I think it is 5 SGD note";
     		  } else if(value >=190 && value <=230) {
