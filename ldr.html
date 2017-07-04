@@ -158,6 +158,7 @@ limitations under the License.
           function initBuggy() {
               console.log("initBuggy");
 
+              /*
               let adMask = 0;
               let pin = 1;
 
@@ -176,6 +177,7 @@ limitations under the License.
      		  adMask = 0
      		  adMask &= ~(1 << pin);
      		  console.log('pinOutput:' + adMask);
+     		  */
 
               let cmdPinAd = new Uint32Array([0x02]);     //Configure pin 0 as Analog
               sendCommandPinAd(cmdPinAd).then(() => {
@@ -350,12 +352,11 @@ limitations under the License.
               })
               .then(characteristicPinService => {
                 console.log('> Found write characteristic for PinService');
-                initBuggy();
-
                 writeCharacteristicPinService = characteristicPinService;
                 characteristicPinService.startNotifications();
                 characteristicPinService.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);
                 progress.hidden = true;
+                initBuggy();
               })
               .catch(handleError);
             } else {
