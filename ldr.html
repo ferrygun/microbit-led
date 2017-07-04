@@ -297,7 +297,7 @@ limitations under the License.
     		  } else if(value >=190 && value <=230) {
     		  	document.getElementById("header").heading = "I think it is 10 SGD note";
     		  } else {
-    		  	document.getElementById("header").heading = value;
+    		  	document.getElementById("header").heading = "Check Your Money";
     		  }
    		}
 
@@ -351,17 +351,14 @@ limitations under the License.
               })
               .then(characteristicPinService => {
                 console.log('> Found write characteristic for PinService');
+                initBuggy();
                 writeCharacteristicPinService = characteristicPinService;
                 characteristicPinService.startNotifications();
                 characteristicPinService.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);
                 progress.hidden = true;
-                initBuggy();
               })
               .catch(handleError);
-            } else {
-              progress.hidden = true;
-              clearPanel();
-            }
+            } 
           }
         });
 
