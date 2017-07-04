@@ -154,9 +154,11 @@ limitations under the License.
         let commandQueuePinIO = [];
         let commandQueuePinService = [];
         let connect_status = false;
+        let notevalue;
         progress.hidden = true;
 
         let button1 = document.querySelector('#button1');
+        button1.addEventListener('click', buttonLEDOnClicked);
         let button2 = document.querySelector('#button2');
        
 
@@ -168,6 +170,24 @@ limitations under the License.
           document.getElementById("no-bluetooth").style.display = "block";
           document.getElementById("no-bluetooth").open();
         }
+
+          
+          function buttonLEDOnClicked(event) {
+            if (connect_status) {
+              console.log(notevalue);
+    		  
+    		  if (notevalue >= 230) {
+    		  	 //5 SGD note
+    		  	 alert("5");
+    		  } else if(notevalue >=190 && notevalue <=230) {
+    		  	 //10 SGD note";
+    		  	 alert("10");
+    		  } else {
+    		  	  button1.style.backgroundColor = "white";
+    		  	  button2.style.backgroundColor = "white";
+    		  }  
+            } 
+          }
 
           function initBuggy() {
               console.log("initBuggy");
@@ -302,21 +322,7 @@ limitations under the License.
         }
 
          function handleCharacteristicValueChanged(event) {
-    		  var value = event.target.value.getUint8(1);
-    		  console.log(value);
-    		  
-    		  if (value >= 230) {
-    		  	 //5 SGD note
-    		  	 button1.style.backgroundColor = "red";
-    		  	 button2.style.backgroundColor = "white";
-    		  } else if(value >=190 && value <=230) {
-    		  	 //10 SGD note";
-    		  	 button1.style.backgroundColor = "white";
-    		  	 button2.style.backgroundColor = "red";
-    		  } else {
-    		  	  button1.style.backgroundColor = "white";
-    		  	  button2.style.backgroundColor = "white";
-    		  }
+    		  notevalue = event.target.value.getUint8(1);
    		}
 
                             
