@@ -116,6 +116,15 @@ limitations under the License.
         <paper-card id="header" heading="Check Your Money">
         </paper-card>
 
+         <paper-card id="panel">
+          <div class="card-content">
+            <div class="container flex">
+              <paper-button id="button1" raised noink>5 SGD</paper-button>
+              <paper-button id="button2" raised noink>10 SGD</paper-button>
+            </div>
+          </div>
+        </paper-card>
+
         <paper-dialog id="no-bluetooth">
           <h2>No Web Bluetooth</h2>
           <p>The Web Bluetooth API is missing. Please enable it at
@@ -146,6 +155,11 @@ limitations under the License.
         let commandQueuePinService = [];
         let connect_status = false;
         progress.hidden = true;
+
+        let button1 = document.querySelector('#button1');
+        let button2 = document.querySelector('#button2');
+       
+
 
         /**
          * Check if browser supports Web Bluetooth API.
@@ -292,11 +306,16 @@ limitations under the License.
     		  console.log(value);
     		  
     		  if (value >= 230) {
-    		  	document.getElementById("header").heading = "I think it is 5 SGD note";
+    		  	 //5 SGD note
+    		  	 button1.style.backgroundColor = "red";
+    		  	 button2.style.backgroundColor = "white";
     		  } else if(value >=190 && value <=230) {
-    		  	document.getElementById("header").heading = "I think it is 10 SGD note";
+    		  	 //10 SGD note";
+    		  	 button1.style.backgroundColor = "white";
+    		  	 button2.style.backgroundColor = "red";
     		  } else {
-    		  	document.getElementById("header").heading = value;
+    		  	  button1.style.backgroundColor = "white";
+    		  	  button2.style.backgroundColor = "white";
     		  }
    		}
 
