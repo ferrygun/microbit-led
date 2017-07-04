@@ -170,7 +170,7 @@
                       console.log('Pin IO set.');
                       connect_status = true;
                   })
-              }).catch(handleError);
+              });
           }
 
    
@@ -273,8 +273,8 @@
         }
 
          function handleCharacteristicValueChanged(event) {
-    		  var value = event.target.value.getUint8(1);
-    		  //console.log(value);
+    		  let value = event.target.value.getUint8(1);
+    		  console.log(value);
 
     		  if (value >= 0 && value <=30) {
     		  	document.getElementById("header").heading = "I think it is 5 SGD note";
@@ -331,7 +331,6 @@
               .then(characteristicPinIO => {
                 console.log('> Found write characteristic for PinIO');
                 writeCharacteristicPinIO = characteristicPinIO;
-                initLDR(); 
                 return commandService.getCharacteristic('e95d8d00-251d-470a-a062-fa1922dfa9a8'); //PINDATA_CHARACTERISTIC_UUID
               })
               .then(characteristicPinService => {
@@ -340,7 +339,7 @@
                 characteristicPinService.startNotifications();
                 characteristicPinService.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);
                 progress.hidden = true;
-                
+                initLDR(); 
                                
               })
               .catch(handleError);
