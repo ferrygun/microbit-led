@@ -336,8 +336,8 @@
               .then(characteristicPinService => {
                 console.log('> Found write characteristic for PinService');
                 writeCharacteristicPinService = characteristicPinService;
-                //characteristicPinService.startNotifications();
-                //characteristicPinService.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);
+                characteristicPinService.startNotifications();
+                characteristicPinService.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);
                 progress.hidden = true;
                 initLDR(); 
                                
