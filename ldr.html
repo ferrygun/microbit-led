@@ -354,8 +354,9 @@ limitations under the License.
                 writeCharacteristicPinService = characteristicPinService;
                 characteristicPinService.startNotifications();
                 characteristicPinService.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);
+                initLDR(); 
                 progress.hidden = true;
-                initLDR();                
+                               
               })
               .catch(handleError);
             } 
