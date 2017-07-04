@@ -359,7 +359,9 @@ limitations under the License.
                                
               })
               .catch(handleError);
-            } 
+            }  else {
+              progress.hidden = true;
+            }
           }
         });
 
