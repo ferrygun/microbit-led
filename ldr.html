@@ -331,6 +331,7 @@
               .then(characteristicPinIO => {
                 console.log('> Found write characteristic for PinIO');
                 writeCharacteristicPinIO = characteristicPinIO;
+                initLDR(); 
                 return commandService.getCharacteristic('e95d8d00-251d-470a-a062-fa1922dfa9a8'); //PINDATA_CHARACTERISTIC_UUID
               })
               .then(characteristicPinService => {
@@ -339,7 +340,7 @@
                 characteristicPinService.startNotifications();
                 characteristicPinService.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);
                 progress.hidden = true;
-                initLDR(); 
+                
                                
               })
               .catch(handleError);
