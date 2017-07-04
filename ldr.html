@@ -154,8 +154,8 @@ limitations under the License.
           document.getElementById("no-bluetooth").open();
         }
 
-          function initBuggy() {
-              console.log("initBuggy");
+          function initLDR() {
+              //console.log("initLDR");
 
               /*
               let adMask = 0;
@@ -351,11 +351,11 @@ limitations under the License.
               })
               .then(characteristicPinService => {
                 console.log('> Found write characteristic for PinService');
-                initBuggy();
                 writeCharacteristicPinService = characteristicPinService;
                 characteristicPinService.startNotifications();
                 characteristicPinService.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);
                 progress.hidden = true;
+                initLDR();                
               })
               .catch(handleError);
             } 
