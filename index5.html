@@ -113,24 +113,7 @@ limitations under the License.
           </div>
         </paper-card>
 
-        <paper-card id="panel">
-          <div class="card-content">
-            <div class="container flex">
-              <paper-input always-float-label label="Message" id="txtmsg"></paper-input>
-            </div>
-          </div>
-        </paper-card>
-
-        <paper-card id="colors">
-          <div class="card-content">
-            <div class="container flex">
-              <paper-button raised class="indigo" id="buttonsend">Send</paper-button>
-            </div>
-          </div>
-        </paper-card>
-
-        <paper-color-picker id="picker"></paper-color-picker>
-
+       
         <paper-dialog id="no-bluetooth">
           <h2>No Web Bluetooth</h2>
           <p>The Web Bluetooth API is missing. Please enable it at
@@ -150,20 +133,14 @@ limitations under the License.
         let connectToggle = document.querySelector('#connect');
         let progress = document.querySelector('#progress');
         let dialog = document.querySelector('#errorDialog');
-        //let picker = document.querySelector('#picker');
-        let pickerButton = document.querySelector('#colorPicker');
-        let activeColorButton = document.querySelector('#color1');
+
         let gattServer;
         let commandService;
         let writeCharacteristic;
+        let writeCharacteristicPeriod;
         let busy = false;
-        let colorChangeListener = null;
-        let currentColor;
         let commandQueue = [];
 
-        picker.alwaysShowAlpha = false;
-        picker.colorValue = 1;
-        picker.shape = 'huebox';
         progress.hidden = true;
 
         /**
@@ -174,32 +151,7 @@ limitations under the License.
           document.getElementById("no-bluetooth").open();
         }
 
-        /**
-         * Set the default display buttons color and hook up click listener.
-         */
-        let button = document.querySelector('#buttonsend');
-        button.addEventListener('click', buttonClicked);
-        
-
-        /**
-         * Display the color picker when the user clicks the picker icon button.
-         */
-          /*
-        pickerButton.addEventListener('click', function(event) {
-          if (colorChangeListener) {
-            picker.removeEventListener('color-as-string-changed', colorChangeListener);
-          }
-          picker.set('immediateColor', colorFromRgb(activeColorButton.style.backgroundColor));
-          picker.addEventListener('color-as-string-changed', colorChangeListener = function() {
-            activeColorButton.style.backgroundColor = colorToHex(picker.color);
-            currentColor.red = picker.color.red;
-            currentColor.green = picker.color.green;
-            currentColor.blue = picker.color.blue;
-            currentColor.alpha = picker.color.alpha;
-          });
-          picker.open();
-        });
-          */
+       
       
         /**
          * Reset the app variable states.
@@ -210,6 +162,7 @@ limitations under the License.
           gattServer = null;
           commandService = null;
           writeCharacteristic = null;
+          writeCharacteristicPeriod = null;
         }
 
         /**
@@ -221,62 +174,30 @@ limitations under the License.
           dialog.open();
         }
 
-        /**
-         * Toggle the active status of the selected color palette button.
-         */
-        function resetOtherPaletteButtons(currentButton) {
-          for(let i=1; i<=2; i++) {
-            let button = document.querySelector('#color'+i);
-            if (button.id != currentButton.id) {
-              button.active = false;
-            }
-          }
+
+
+        function initPeriod() {
+        	 let cmdPinAd = new Uint8Array([0x280]);
+              sendPeriod(cmdPinAd).then(() => {
+                  console.log('Period set.');
+               }).catch(handleError);
         }
 
-        /**
-         * Set the color of the display button to the currently selected palette color.
-         */
-        function buttonClicked(event) {
-            let msg = document.getElementById("txtmsg").value;
-            console.log(msg);
-            sendCommand(msg);
-          
-        }
-
-       
-
-        /**
-         * Send a command to the device.
-         * See http://wittidesign.com/en/developer/ for API.
-         *
-         * @param cmd The command bytes and associated data.
-         */
-        function sendCommand(cmd) {
-          if (writeCharacteristic) {
+        function sendPeriod(cmd) {
+          if (writeCharacteristicPeriod) {
             // Handle one command at a time
             if (busy) {
               // Queue commands
-              commandQueue.push(cmd);
+              commandQueueP.push(cmd);
               return Promise.resolve();
             }
             busy = true;
-            console.log('CMD1:' + cmd);
-
-            let bytes = []; // char codes
-            
-            for (let i = 0; i < cmd.length; ++i) {
-              let code = cmd.charCodeAt(i);
-              bytes = bytes.concat([code]);
-            }
-
-            cmd = new Uint8Array(bytes);
-                        
-            return writeCharacteristic.writeValue(cmd).then(() => {
+            return writeCharacteristicPeriod.writeValue(cmd).then(() => {
               busy = false;
               // Get next command from queue
               let nextCommand = commandQueue.shift();
               if (nextCommand) {
-                sendCommand(nextCommand);
+                sendPeriod(nextCommand);
               }
             });
           } else {
@@ -285,18 +206,16 @@ limitations under the License.
         }
 
         function handleCharacteristicValueChanged(event) {
-    		  var value = event.target.value;
-    		  
-    		  let a = [];
-    		  // Convert raw data bytes to hex values just for the sake of showing something.
-    		  // In the "real" world, you'd use data.getUint8, data.getUint16 or even
-    		  // TextDecoder to process raw data bytes.
+    		  let x = event.target.value.getUint16(0)/1000.0;
+    		  console.log('x:' + x);
 
-          for (let i = 0; i < value.byteLength; i++) {
-            a.push('0x' + ('00' + value.getUint8(i).toString(16)).slice(-2));
-          }
-          
-    		}
+    		  let y = event.target.value.getUint16(2)/1000.0;
+    		  console.log('y:' + y);
+
+    		  let z = event.target.value.getUint16(4)/1000.0;
+    		  console.log('z:' + z);
+
+    	}
                                 
         /**
          * Connect to command characteristic.
@@ -334,16 +253,19 @@ limitations under the License.
                 commandService = service;
                 return commandService.getCharacteristic('e95dca4b-251d-470a-a062-fa1922dfa9a8'); //ACCELEROMETERDATA_CHARACTERISTIC_UUID
               })
-              .then(characteristic => {
-                characteristic.startNotifications();
-                characteristic.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);
-                progress.hidden = true;
-              })
-              .then(characteristic=> {
+               .then(characteristic=> {
                 console.log('> Found write characteristic');
-                writeCharacteristic= characteristic;
+                writeCharacteristic = characteristic;
+                writeCharacteristic.startNotifications();
+                writeCharacteristic.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);	
                 return commandService.getCharacteristic('e95dfb24-251d-470a-a062-fa1922dfa9a8'); //ACCELEROMETERPERIOD_CHARACTERISTIC_UUID
               })
+              .then(PeriodCharacteristic => {
+              	writeCharacteristicPeriod = PeriodCharacteristic;
+              	initPeriod();
+                progress.hidden = true;
+              })
+    
    
               .catch(handleError);
             } else {
