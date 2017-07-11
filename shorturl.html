@@ -1,0 +1,52 @@
+<html>
+<head>
+<title>URL Shortener using Google API. http://goo.gl </title>
+<script src="https://apis.google.com/js/client.js" type="text/javascript"> </script>
+</head>
+<script type="text/javascript">
+function makeRequest() {
+var Url = document.getElementById("longurl").value;
+var request = gapi.client.urlshortener.url.insert({
+'resource': {
+'longUrl': Url
+}
+});
+request.execute(function(response) {
+
+if (response.id != null) {
+str = "<b>Long URL:</b>" + Url + "<br>";
+str += "<b>Test Short URL:</b> <a href='" + response.id + "'>" + response.id + "</a><br>";
+document.getElementById("result").innerHTML = str;
+}
+else {
+alert("Error: creating short url \n" + response.error);
+}
+});
+}
+function load() {
+gapi.client.setApiKey('AIzaSyA4LD0NnrOKhdvpo8kmzgNjqAIRw9NNcWA');
+gapi.client.load('urlshortener', 'v1', function() { document.getElementById("result").innerHTML = ""; });
+}
+window.onload = load;
+</script>
+<body>
+<h2> URL Shortener using Google API. http://goo.gl </h2>
+<table>
+<tr>
+<td>Enter Long URL:</td>
+<td>
+<input type="text" id="longurl" name="url" size="30" value="http://www.aspdotnet-suresh.com" />
+</td>
+</tr>
+<tr>
+<td></td>
+<td><input type="button" value="Create Short Url" onclick="makeRequest();" /></td>
+</tr>
+<tr>
+<td colspan="2">
+<div id="result"></div>
+</td>
+</tr>
+</table>
+</body>
+</html>
