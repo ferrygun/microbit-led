@@ -1,24 +1,7 @@
-
-<!doctype html>
-<!--
-Copyright 2016 Google Inc. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
 <html>
   <head>
-    <title>BBC micro:bit LED Display</title>
-    <meta name="description" content="Light up an LED Display with Web Bluetooth.">
+    <title>BBC micro:bit Physical Web Demo</title>
+    <meta name="description" content="BBC micro:bit Physical Web Demo">
 
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
@@ -28,6 +11,8 @@ limitations under the License.
 
 
     <script src="./web/bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
+    <script type="text/javascript" src="jquery-1.11.3.min.js"></script>
+	<script type="text/javascript" src="jquery.simplemodal.1.4.4.min.js"></script>
 
     <!-- Polymer components -->
     <link rel="import" href="./web/bower_components/paper-progress/paper-progress.html">
@@ -71,7 +56,7 @@ limitations under the License.
       }
       paper-button {
         display: block;
-        width: 80px;
+        width: 140px;
         height: 40px;
         min-width: 0em;
         margin: 0.2em 0.2em;
@@ -106,7 +91,7 @@ limitations under the License.
   <body unresolved>
     <template id="template" is="dom-bind">
       <div id="cards">
-        <paper-card heading="BBC micro:bit LED Display">
+        <paper-card heading="BBC micro:bit Physical Web Demo">
           <div class="card-content">
             <paper-toggle-button class="blue" id="connect">Connect</paper-toggle-button>
             <paper-progress id="progress" indeterminate></paper-progress>
@@ -116,7 +101,7 @@ limitations under the License.
         <paper-card id="panel">
           <div class="card-content">
             <div class="container flex">
-              <paper-input always-float-label label="Message" id="txtmsg"></paper-input>
+              <paper-input always-float-label label="URL (in https)" id="txtmsg"></paper-input>
             </div>
           </div>
         </paper-card>
@@ -124,13 +109,12 @@ limitations under the License.
         <paper-card id="colors">
           <div class="card-content">
             <div class="container flex">
-              <paper-button raised class="indigo" id="buttonsend">Send</paper-button>
+              <paper-button raised class="indigo" id="buttonsend">Advertise URL</paper-button>
             </div>
           </div>
         </paper-card>
 
-        <paper-color-picker id="picker"></paper-color-picker>
-
+     
         <paper-dialog id="no-bluetooth">
           <h2>No Web Bluetooth</h2>
           <p>The Web Bluetooth API is missing. Please enable it at
@@ -150,21 +134,83 @@ limitations under the License.
         let connectToggle = document.querySelector('#connect');
         let progress = document.querySelector('#progress');
         let dialog = document.querySelector('#errorDialog');
-        //let picker = document.querySelector('#picker');
-        let pickerButton = document.querySelector('#colorPicker');
-        let activeColorButton = document.querySelector('#color1');
+
         let gattServer;
         let commandService;
         let writeCharacteristic;
+        let writeClientReqCharacteristic;
+        let writeClientEvtCharacteristic;
         let busy = false;
-        let colorChangeListener = null;
-        let currentColor;
         let commandQueue = [];
 
-        picker.alwaysShowAlpha = false;
-        picker.colorValue = 1;
-        picker.shape = 'huebox';
         progress.hidden = true;
+
+        let button = document.querySelector('#buttonsend');
+        button.addEventListener('click', buttonClicked);
+
+        function buttonClicked(event) {
+
+        	if (writeCharacteristic) {
+	            let url = document.getElementById("txtmsg").value;
+
+	            $.ajax({
+			        url: 'https://www.googleapis.com/urlshortener/v1/url?shortUrl=http://goo.gl/fbsS&key=AIzaSyAb2UCc_Pz93B4pg9Kit41zyG-B5l1AB7M',
+			        type: 'POST',
+			        contentType: 'application/json; charset=utf-8',
+			        data: '{ longUrl: "' + url +'"}',
+			        dataType: 'json',
+			        success: function(response) {
+			            url = response.id;
+
+			        	let bytes = []; // char codes
+			     		let sbyte;
+
+			     		let cmd = url + "~";
+			     		let cmd1;
+			            let code;
+
+			            for (let i = 0; i < cmd.length; ++i) {
+			            	code = cmd.charCodeAt(i);
+			              	bytes = bytes.concat([code]);
+			            }
+
+			            for (let j = 0; j < bytes.length; j++) {
+			            	sbyte = bytes[j];
+			            	console.log(sbyte);
+			              	cmd1 = new Uint16Array([0x22B8, sbyte]);
+			              	sendCommand(cmd1);
+			            }
+
+			        }
+			    });
+	        }
+        }
+
+        function sendCommand(cmd) {
+        	if (writeClientEvtCharacteristic) {
+            // Handle one command at a time
+            if (busy) {
+              // Queue commands
+              commandQueue.push(cmd);
+              return Promise.resolve();
+            }
+            busy = true;
+  
+
+	        return writeClientEvtCharacteristic.writeValue(cmd).then(() => {
+	              busy = false;
+	              // Get next command from queue
+	              let nextCommand = commandQueue.shift();
+	              if (nextCommand) {
+	                sendCommand(nextCommand);
+	              }
+	        });
+	        
+
+          } else {
+            return Promise.resolve();
+          }
+        }
 
         /**
          * Check if browser supports Web Bluetooth API.
@@ -175,33 +221,6 @@ limitations under the License.
         }
 
         /**
-         * Set the default display buttons color and hook up click listener.
-         */
-        let button = document.querySelector('#buttonsend');
-        button.addEventListener('click', buttonClicked);
-        
-
-        /**
-         * Display the color picker when the user clicks the picker icon button.
-         */
-          /*
-        pickerButton.addEventListener('click', function(event) {
-          if (colorChangeListener) {
-            picker.removeEventListener('color-as-string-changed', colorChangeListener);
-          }
-          picker.set('immediateColor', colorFromRgb(activeColorButton.style.backgroundColor));
-          picker.addEventListener('color-as-string-changed', colorChangeListener = function() {
-            activeColorButton.style.backgroundColor = colorToHex(picker.color);
-            currentColor.red = picker.color.red;
-            currentColor.green = picker.color.green;
-            currentColor.blue = picker.color.blue;
-            currentColor.alpha = picker.color.alpha;
-          });
-          picker.open();
-        });
-          */
-      
-        /**
          * Reset the app variable states.
          */
         function resetVariables() {
@@ -210,6 +229,10 @@ limitations under the License.
           gattServer = null;
           commandService = null;
           writeCharacteristic = null;
+          writeClientReqCharacteristic = null;
+          writeClientEvtCharacteristic = null;
+          connectToggle.checked = false;
+
         }
 
         /**
@@ -221,62 +244,29 @@ limitations under the License.
           dialog.open();
         }
 
-        /**
-         * Toggle the active status of the selected color palette button.
-         */
-        function resetOtherPaletteButtons(currentButton) {
-          for(let i=1; i<=2; i++) {
-            let button = document.querySelector('#color'+i);
-            if (button.id != currentButton.id) {
-              button.active = false;
-            }
-          }
+
+        function initEvent() {
+        	 let cmdPinAd = new Uint16Array([0x22B8, 0x00]);
+              sendEvent(cmdPinAd).then(() => {
+                  console.log('Event set.');
+               }).catch(handleError);
         }
 
-        /**
-         * Set the color of the display button to the currently selected palette color.
-         */
-        function buttonClicked(event) {
-            let msg = document.getElementById("txtmsg").value;
-            console.log(msg);
-            sendCommand(msg);
-          
-        }
-
-       
-
-        /**
-         * Send a command to the device.
-         * See http://wittidesign.com/en/developer/ for API.
-         *
-         * @param cmd The command bytes and associated data.
-         */
-        function sendCommand(cmd) {
-          if (writeCharacteristic) {
+        function sendEvent(cmd) {
+          if (writeClientReqCharacteristic) {
             // Handle one command at a time
             if (busy) {
               // Queue commands
-              commandQueue.push(cmd);
+              commandQueueP.push(cmd);
               return Promise.resolve();
             }
             busy = true;
-            console.log('CMD1:' + cmd);
-
-            let bytes = []; // char codes
-            
-            for (let i = 0; i < cmd.length; ++i) {
-              let code = cmd.charCodeAt(i);
-              bytes = bytes.concat([code]);
-            }
-
-            cmd = new Uint8Array(bytes);
-                        
-            return writeCharacteristic.writeValue(cmd).then(() => {
+            return writeClientReqCharacteristic.writeValue(cmd).then(() => {
               busy = false;
               // Get next command from queue
               let nextCommand = commandQueue.shift();
               if (nextCommand) {
-                sendCommand(nextCommand);
+                sendEvent(nextCommand);
               }
             });
           } else {
@@ -284,6 +274,19 @@ limitations under the License.
           }
         }
 
+        function handleCharacteristicValueChanged(event) {
+    		var value = event.target.value;
+    		  
+    		  let a = [];
+    		  // Convert raw data bytes to hex values just for the sake of showing something.
+    		  // In the "real" world, you'd use data.getUint8, data.getUint16 or even
+    		  // TextDecoder to process raw data bytes.
+    		  for (let i = 0; i < value.byteLength; i++) {
+    		    a.push('0x' + ('00' + value.getUint8(i).toString(16)).slice(-2));
+    		  }
+    		  console.log('> ' + a.join(' '));
+
+    	}
                                 
         /**
          * Connect to command characteristic.
@@ -303,7 +306,7 @@ limitations under the License.
                 filters: [{
                   namePrefix: 'BBC micro:bit',
                 }],
-                optionalServices: ['e95dd91d-251d-470a-a062-fa1922dfa9a8'] //LEDSERVICE_SERVICE_UUID
+                optionalServices: ['e95d93af-251d-470a-a062-fa1922dfa9a8'] //EVENTSERVICE_SERVICE_UUID
               })
               .then(device => {
                 console.log('Connecting to GATT Server...');
@@ -312,22 +315,34 @@ limitations under the License.
               .then(server => {
                 console.log('> Found GATT server');
                 gattServer = server;
+                //console.log(gattServer);
                 // Get command service
-                return gattServer.getPrimaryService('e95dd91d-251d-470a-a062-fa1922dfa9a8'); //LEDSERVICE_SERVICE_UUID
+                return gattServer.getPrimaryService('e95d93af-251d-470a-a062-fa1922dfa9a8'); //EVENTSERVICE_SERVICE_UUID
               })
               .then(service => {
                 console.log('> Found command service');
                 commandService = service;
-                // Get write characteristic
-                //return commandService.getCharacteristic('e95d7b77-251d-470a-a062-fa1922dfa9a8'); //LEDMATRIXSTATE_CHARACTERISTIC_UUID
-                return commandService.getCharacteristic('e95d93ee-251d-470a-a062-fa1922dfa9a8'); //LEDMATRIXSTATE_CHARACTERISTIC_UUID
+                return commandService.getCharacteristic('e95d9775-251d-470a-a062-fa1922dfa9a8'); //MICROBITEVENT_CHARACTERISTIC_UUID
               })
-              .then(characteristic => {
+               .then(characteristic=> {
                 console.log('> Found write characteristic');
-                console.log(characteristic);
                 writeCharacteristic = characteristic;
+                writeCharacteristic.startNotifications();
+                writeCharacteristic.addEventListener('characteristicvaluechanged',handleCharacteristicValueChanged);	
+                return commandService.getCharacteristic('e95d5404-251d-470a-a062-fa1922dfa9a8'); //CLIENTEVENT_CHARACTERISTIC_UUID
+              })
+              .then(ClientEvtCharacteristic => {
+              	console.log('> Found Client Event ClientEvtCharacteristic');
+              	writeClientEvtCharacteristic = ClientEvtCharacteristic;
+              	return commandService.getCharacteristic('e95d23c4-251d-470a-a062-fa1922dfa9a8'); //CLIENTREQUIREMENTS_CHARACTERISTIC_UUID
+              })
+              .then(ClientReqCharacteristic => {
+              	console.log('> Found Client Requirement characteristic');
+              	writeClientReqCharacteristic = ClientReqCharacteristic;
+              	initEvent();
                 progress.hidden = true;
               })
+              
               .catch(handleError);
             } else {
               progress.hidden = true;
