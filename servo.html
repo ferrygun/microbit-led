@@ -235,7 +235,7 @@
         	 let cmdPinAd = new Uint16Array([0x22B8, 0x00]);
               sendEvent(cmdPinAd).then(() => {
                   console.log('Event set.');
-               }); //.catch(handleError);
+               }).catch(handleError);
         }
 
         function sendEvent(cmd) {
